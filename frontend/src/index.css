@@ -1,0 +1,253 @@
+@import "tailwindcss";
+
+/* Enables `dark:` utilities driven by the .dark class on <html>. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---------------------------------------------------------------------------
+   Theme tokens.
+
+   Every colour is a runtime CSS variable, so switching to dark mode is a class
+   change on <html> rather than a re-render. The `ink` ramp is semantic, not
+   literal: ink-50 is always the page background and ink-900 is always the
+   strongest text, in both themes. That means a single set of utility classes
+   works everywhere.
+
+   When the Stitch export lands, these values are the only thing that changes.
+   --------------------------------------------------------------------------- */
+
+:root {
+  color-scheme: light;
+
+  /* Neutral ramp — 50 = page background … 900 = strongest text */
+  --ink-50: #f6f8fb;
+  --ink-100: #eceff4;
+  --ink-200: #dee3ec;
+  --ink-300: #c4ccda;
+  --ink-400: #909db2;
+  --ink-500: #67748b;
+  --ink-600: #4b5769;
+  --ink-700: #374255;
+  --ink-800: #212b3b;
+  --ink-900: #121926;
+
+  /* Panels that sit above the page background */
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-sunken: #f2f5f9;
+  --overlay: rgb(18 25 38 / 0.45);
+
+  /* Brand */
+  --brand-50: #eef4ff;
+  --brand-100: #dce8ff;
+  --brand-200: #bdd4ff;
+  --brand-300: #8fb4ff;
+  --brand-400: #5a8bff;
+  --brand-500: #3563e9;
+  --brand-600: #2549c9;
+  --brand-700: #1e3ba3;
+  --brand-800: #1d3382;
+  --brand-900: #1c2f68;
+  --brand-contrast: #ffffff;
+
+  /* Status */
+  --success: #047857;
+  --success-soft: #e7f7f0;
+  --success-ring: rgb(4 120 87 / 0.2);
+  --warning: #b45309;
+  --warning-soft: #fdf3e3;
+  --warning-ring: rgb(180 83 9 / 0.2);
+  --danger: #c62828;
+  --danger-soft: #fdedec;
+  --danger-ring: rgb(198 40 40 / 0.2);
+  --info: #1e5fbd;
+  --info-soft: #e9f1fd;
+  --info-ring: rgb(30 95 189 / 0.2);
+  --accent: #6d3fc4;
+  --accent-soft: #f2ecfd;
+  --accent-ring: rgb(109 63 196 / 0.2);
+
+  --shadow-ambient: 0 1px 2px rgb(18 25 38 / 0.06), 0 1px 3px rgb(18 25 38 / 0.04);
+  --shadow-raised: 0 10px 30px rgb(18 25 38 / 0.12);
+}
+
+.dark {
+  color-scheme: dark;
+
+  /* Same roles, inverted lightness — no class changes needed downstream. */
+  --ink-50: #0c111a;
+  --ink-100: #151d29;
+  --ink-200: #242e3f;
+  --ink-300: #354154;
+  --ink-400: #6d7c92;
+  --ink-500: #93a1b6;
+  --ink-600: #b2bfd0;
+  --ink-700: #cdd7e4;
+  --ink-800: #e3eaf3;
+  --ink-900: #f4f7fb;
+
+  --surface: #131b26;
+  --surface-raised: #1a2431;
+  --surface-sunken: #0f1721;
+  --overlay: rgb(3 6 12 / 0.68);
+
+  /* Brand lifts in dark so it stays legible against deep panels. */
+  --brand-50: #16233d;
+  --brand-100: #1b2d4f;
+  --brand-200: #22406f;
+  --brand-300: #2f5aa0;
+  --brand-400: #4a7ddb;
+  --brand-500: #6098ff;
+  --brand-600: #79a8ff;
+  --brand-700: #9cc0ff;
+  --brand-800: #c1d8ff;
+  --brand-900: #e2edff;
+  --brand-contrast: #0b1220;
+
+  --success: #4ade9a;
+  --success-soft: #102c22;
+  --success-ring: rgb(74 222 154 / 0.25);
+  --warning: #f2b457;
+  --warning-soft: #2e2213;
+  --warning-ring: rgb(242 180 87 / 0.25);
+  --danger: #ff7b72;
+  --danger-soft: #33191b;
+  --danger-ring: rgb(255 123 114 / 0.25);
+  --info: #6fa8ff;
+  --info-soft: #14243d;
+  --info-ring: rgb(111 168 255 / 0.25);
+  --accent: #b794f6;
+  --accent-soft: #241a3a;
+  --accent-ring: rgb(183 148 246 / 0.25);
+
+  --shadow-ambient: 0 1px 2px rgb(0 0 0 / 0.5), 0 1px 3px rgb(0 0 0 / 0.35);
+  --shadow-raised: 0 14px 40px rgb(0 0 0 / 0.55);
+}
+
+/* `inline` makes the utilities emit var() references rather than baking the
+   value in, which is what lets a class swap repaint the whole app. */
+@theme inline {
+  --color-ink-50: var(--ink-50);
+  --color-ink-100: var(--ink-100);
+  --color-ink-200: var(--ink-200);
+  --color-ink-300: var(--ink-300);
+  --color-ink-400: var(--ink-400);
+  --color-ink-500: var(--ink-500);
+  --color-ink-600: var(--ink-600);
+  --color-ink-700: var(--ink-700);
+  --color-ink-800: var(--ink-800);
+  --color-ink-900: var(--ink-900);
+
+  --color-surface: var(--surface);
+  --color-raised: var(--surface-raised);
+  --color-sunken: var(--surface-sunken);
+  --color-overlay: var(--overlay);
+
+  --color-brand-50: var(--brand-50);
+  --color-brand-100: var(--brand-100);
+  --color-brand-200: var(--brand-200);
+  --color-brand-300: var(--brand-300);
+  --color-brand-400: var(--brand-400);
+  --color-brand-500: var(--brand-500);
+  --color-brand-600: var(--brand-600);
+  --color-brand-700: var(--brand-700);
+  --color-brand-800: var(--brand-800);
+  --color-brand-900: var(--brand-900);
+  --color-brand-contrast: var(--brand-contrast);
+
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-success-ring: var(--success-ring);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-ring: var(--warning-ring);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-ring: var(--danger-ring);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-info-ring: var(--info-ring);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-ring: var(--accent-ring);
+
+  --shadow-ambient: var(--shadow-ambient);
+  --shadow-raised: var(--shadow-raised);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--ink-50);
+  color: var(--ink-800);
+  font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.18s ease, color 0.18s ease;
+}
+
+/* Native controls (date pickers, selects) follow the theme. */
+input[type="date"],
+input[type="month"] {
+  color-scheme: inherit;
+}
+
+/* Thin, unobtrusive scrollbars inside data tables. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ink-300) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--ink-300);
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Skeleton shimmer used by the loading states. */
+@keyframes propora-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+.skeleton {
+  background-color: var(--ink-200);
+  border-radius: 0.5rem;
+  animation: propora-pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes propora-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.animate-toast {
+  animation: propora-slide-in 0.22s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
