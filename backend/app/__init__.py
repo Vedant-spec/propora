@@ -36,11 +36,22 @@ def create_app(config_class=Config):
     @app.get("/api/health")
     def health():
         from .mailer import is_configured
+        from .models import Property, User
+
+        engine = app.config["SQLALCHEMY_DATABASE_URI"].split("://")[0]
+        try:
+            users, properties = User.query.count(), Property.query.count()
+        except Exception:  # pragma: no cover - database not reachable
+            users = properties = None
 
         return jsonify(
             {
                 "status": "ok",
-                "database": app.config["SQLALCHEMY_DATABASE_URI"].split("://")[0],
+                "database": engine,
+                # SQLite on a container filesystem does not survive a restart.
+                "persistent": engine != "sqlite",
+                "users": users,
+                "properties": properties,
                 "email": "configured" if is_configured() else "disabled",
             }
         )

@@ -90,4 +90,6 @@ class Config:
 
     PASSWORD_RESET_TTL_MINUTES = int(os.getenv("PASSWORD_RESET_TTL_MINUTES", 30))
     PRODUCTION = _bool("PRODUCTION")
-    SEED_ON_START = _bool("SEED_ON_START")
+    # An empty database means nobody can sign in, which makes the app
+    # unusable. Bootstrap the demo dataset unless explicitly told not to.
+    SEED_ON_START = _bool("SEED_ON_START", True)

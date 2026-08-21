@@ -1,5 +1,8 @@
 const TOKEN_KEY = 'propora.token'
 
+/** Set at build time for the hosted demo, which has no server to talk to. */
+export const DEMO = import.meta.env.VITE_DEMO === 'true'
+
 export const tokenStore = {
   get: () => localStorage.getItem(TOKEN_KEY),
   set: (token: string) => localStorage.setItem(TOKEN_KEY, token),
@@ -49,6 +52,8 @@ function buildUrl(path: string, params?: Params) {
 }
 
 export async function api<T = any>(path: string, options: Options = {}): Promise<T> {
+  if (DEMO) return demoCall<T>(path, options)
+
   const token = tokenStore.get()
   const response = await fetch(buildUrl(path, options.params), {
     method: options.method ?? 'GET',
@@ -81,8 +86,28 @@ export async function api<T = any>(path: string, options: Options = {}): Promise
   return payload as T
 }
 
+/** Demo mode: hand the request to the in-browser backend. */
+async function demoCall<T>(path: string, options: Options): Promise<T> {
+  const { demoRequest, DemoError } = await import('../demo/backend')
+  try {
+    return (await demoRequest(
+      buildUrl(path, options.params).replace(/^\/api/, ''),
+      options.method ?? 'GET',
+      options.body,
+    )) as T
+  } catch (err) {
+    if (err instanceof DemoError) {
+      if (err.status === 401 && !options.silent401) tokenStore.clear()
+      throw new ApiError(err.message, err.status, err.errors)
+    }
+    throw err
+  }
+}
+
 /** Upload multipart form data (tenant ID documents). */
 export async function upload<T = any>(path: string, formData: FormData): Promise<T> {
+  if (DEMO) return demoCall<T>(path, { method: 'POST', body: {} })
+
   const token = tokenStore.get()
   const response = await fetch(`/api${path}`, {
     method: 'POST',
@@ -102,6 +127,13 @@ export async function upload<T = any>(path: string, formData: FormData): Promise
 
 /** Fetch a file export with the auth header attached and hand it to the browser. */
 export async function download(path: string, params: Params, filename: string) {
+  if (DEMO) {
+    throw new ApiError(
+      'File downloads run on the server. In this hosted demo the report is shown on screen instead — the deployed app exports PDF, Excel and CSV.',
+      501,
+    )
+  }
+
   const token = tokenStore.get()
   const response = await fetch(buildUrl(path, params), {
     headers: token ? { Authorization: `Bearer ${token}` } : {},

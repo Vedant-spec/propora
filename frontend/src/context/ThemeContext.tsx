@@ -16,8 +16,22 @@ interface ThemeValue {
 
 const ThemeContext = createContext<ThemeValue | null>(null)
 
-const systemPrefersDark = () =>
-  typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches
+/**
+ * What "system" resolves to.
+ *
+ * When the app is embedded (the hosted demo runs inside the Claude artifact
+ * viewer), the host stamps data-theme="dark" | "light" on the root element to
+ * signal the reader's explicit choice, and stamps nothing when they are on
+ * "system". Honour that stamp first so the demo matches the surrounding UI,
+ * and fall back to the OS preference when there is none.
+ */
+const systemPrefersDark = () => {
+  if (typeof window === 'undefined') return false
+  const stamped = document.documentElement.getAttribute('data-theme')
+  if (stamped === 'dark') return true
+  if (stamped === 'light') return false
+  return window.matchMedia('(prefers-color-scheme: dark)').matches
+}
 
 function readStored(): ThemeChoice {
   const stored = localStorage.getItem(STORAGE_KEY)
@@ -33,12 +47,24 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [choice, setChoice] = useState<ThemeChoice>(readStored)
   const [systemDark, setSystemDark] = useState(systemPrefersDark)
 
-  // Follow the OS while the choice is 'system'.
+  // Follow the OS — and the host's theme stamp — while the choice is 'system'.
   useEffect(() => {
+    const sync = () => setSystemDark(systemPrefersDark())
+
     const media = window.matchMedia('(prefers-color-scheme: dark)')
-    const onChange = (event: MediaQueryListEvent) => setSystemDark(event.matches)
-    media.addEventListener('change', onChange)
-    return () => media.removeEventListener('change', onChange)
+    media.addEventListener('change', sync)
+
+    // The host rewrites data-theme when the reader flips their own theme.
+    const observer = new MutationObserver(sync)
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    })
+
+    return () => {
+      media.removeEventListener('change', sync)
+      observer.disconnect()
+    }
   }, [])
 
   const resolved: 'light' | 'dark' =

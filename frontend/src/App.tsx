@@ -1,10 +1,12 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, HashRouter, Navigate, Route, Routes } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeContext'
 import { ToastProvider } from './context/ToastContext'
 import Layout from './components/Layout'
 import { Spinner } from './components/ui'
+import { DEMO } from './lib/api'
+import DemoBanner from './components/DemoBanner'
 
 // Auth
 import Splash from './pages/Splash'
@@ -68,12 +70,17 @@ function HomeRedirect() {
   return <Navigate to={user.role === 'tenant' ? '/portal' : '/dashboard'} replace />
 }
 
+// The hosted demo runs inside an iframe, where the History API cannot own the
+// URL — hash routing keeps deep links working there.
+const Router = DEMO ? HashRouter : BrowserRouter
+
 export default function App() {
   return (
     <ThemeProvider>
       <ToastProvider>
-        <BrowserRouter>
+        <Router>
           <AuthProvider>
+            {DEMO && <DemoBanner />}
             <Routes>
               {/* Public */}
               <Route path="/" element={<Splash />} />
@@ -134,7 +141,7 @@ export default function App() {
               <Route path="*" element={<HomeRedirect />} />
             </Routes>
           </AuthProvider>
-        </BrowserRouter>
+        </Router>
       </ToastProvider>
     </ThemeProvider>
   )
