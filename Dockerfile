@@ -20,5 +20,6 @@ ENV STATIC_DIR=/app/static UPLOAD_FOLDER=/app/uploads
 RUN mkdir -p /app/uploads
 
 EXPOSE 8000
-# Threads (not extra workers) keep memory low on small free-tier instances.
-CMD gunicorn wsgi:app --bind 0.0.0.0:${PORT:-8000} --workers 2 --threads 4 --timeout 60
+# Prepare the database first, so the app is never briefly up-but-empty after a
+# cold start. Threads (not extra workers) keep memory low on free-tier instances.
+CMD python bootstrap.py && gunicorn wsgi:app --bind 0.0.0.0:${PORT:-8000} --workers 2 --threads 4 --timeout 60
