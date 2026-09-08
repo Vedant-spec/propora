@@ -5,12 +5,15 @@ import { api, readError } from '../lib/api'
 import { useToast } from '../context/ToastContext'
 import { formatDate, formatMonth, money } from '../lib/format'
 import BackLink from '../components/BackLink'
+import LeaseFields from '../components/forms/LeaseFields'
+import type { LeaseForm } from '../components/forms/LeaseFields'
 import {
   Alert,
   Badge,
   Button,
   Card,
   CardHeader,
+  ConfirmModal,
   Detail,
   DetailGrid,
   DetailSkeleton,
@@ -23,7 +26,7 @@ import {
   Table,
   Td,
 } from '../components/ui'
-import type { Lease, Payment } from '../lib/types'
+import type { Lease, Payment, Property, Tenant } from '../lib/types'
 
 interface LeaseDetail extends Lease {
   payments: Payment[]
@@ -35,7 +38,13 @@ export default function LeaseDetails() {
   const navigate = useNavigate()
   const toast = useToast()
   const { data, loading, error, reload } = useResource<LeaseDetail>(`/leases/${id}`)
+  const { data: properties } = useResource<Property[]>('/properties')
+  const { data: tenants } = useResource<Tenant[]>('/tenants')
 
+  const [editing, setEditing] = useState<LeaseForm | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [formError, setFormError] = useState('')
   const [renewing, setRenewing] = useState(false)
   const [months, setMonths] = useState(12)
   const [newRent, setNewRent] = useState<number | ''>('')
@@ -44,6 +53,47 @@ export default function LeaseDetails() {
   if (loading) return <DetailSkeleton />
   if (error) return <Alert message={error} />
   if (!data) return null
+
+  const set = (patch: LeaseForm) => setEditing((prev) => ({ ...prev, ...patch }))
+
+  const openEdit = () => {
+    setErrors({})
+    setFormError('')
+    setEditing({ ...data })
+  }
+
+  const saveEdit = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (!editing) return
+    setSaving(true)
+    setFormError('')
+    setErrors({})
+    try {
+      await api(`/leases/${id}`, { method: 'PUT', body: editing })
+      setEditing(null)
+      toast.success('Lease updated')
+      await reload()
+    } catch (err) {
+      const parsed = readError(err)
+      setFormError(parsed.message)
+      setErrors(parsed.errors)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const remove = async () => {
+    setSaving(true)
+    setFormError('')
+    try {
+      await api(`/leases/${id}`, { method: 'DELETE' })
+      toast.success('Lease deleted')
+      navigate('/leases', { replace: true })
+    } catch (err) {
+      setFormError(readError(err).message)
+      setSaving(false)
+    }
+  }
 
   const renew = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -221,7 +271,7 @@ export default function LeaseDetails() {
           <Card>
             <CardHeader title="Actions" />
             <div className="space-y-2 p-5">
-              <Button variant="secondary" className="w-full" onClick={() => navigate('/leases')}>
+              <Button variant="secondary" className="w-full" onClick={openEdit}>
                 Edit lease
               </Button>
               <Button variant="secondary" className="w-full" onClick={generateInvoices}>
@@ -229,6 +279,16 @@ export default function LeaseDetails() {
               </Button>
               <Button className="w-full" onClick={() => setRenewing(true)}>
                 Renew lease
+              </Button>
+              <Button
+                variant="ghost"
+                className="w-full text-danger hover:bg-danger-soft"
+                onClick={() => {
+                  setFormError('')
+                  setConfirmDelete(true)
+                }}
+              >
+                Delete lease
               </Button>
             </div>
           </Card>
@@ -282,6 +342,52 @@ export default function LeaseDetails() {
           />
         </form>
       </Modal>
+
+      <Modal
+        open={Boolean(editing)}
+        title="Edit lease"
+        subtitle={editing?.lease_code}
+        onClose={() => setEditing(null)}
+        wide
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setEditing(null)}>
+              Cancel
+            </Button>
+            <Button form="lease-detail-form" type="submit" disabled={saving}>
+              {saving ? 'Saving…' : 'Save lease'}
+            </Button>
+          </>
+        }
+      >
+        <form id="lease-detail-form" onSubmit={saveEdit} className="space-y-4" noValidate>
+          {formError && !Object.keys(errors).length && <Alert message={formError} />}
+          <LeaseFields
+            value={editing}
+            set={set}
+            errors={errors}
+            properties={properties ?? []}
+            tenants={tenants ?? []}
+          />
+        </form>
+      </Modal>
+
+      <ConfirmModal
+        open={confirmDelete}
+        title="Delete lease"
+        message={
+          <>
+            Delete the lease for <strong className="text-ink-900">{data.tenant_name}</strong> at{' '}
+            <strong className="text-ink-900">{data.property_name}</strong>? All rent invoices under
+            it are removed and the property is marked available.
+          </>
+        }
+        confirmLabel="Delete lease"
+        busy={saving}
+        error={formError}
+        onConfirm={remove}
+        onClose={() => setConfirmDelete(false)}
+      />
     </>
   )
 }

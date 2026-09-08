@@ -13,8 +13,6 @@ import {
   ConfirmModal,
   EmptyState,
   ErrorState,
-  Field,
-  Input,
   Modal,
   PageHeader,
   SearchBar,
@@ -24,31 +22,10 @@ import {
   TableSkeleton,
   Tabs,
   Td,
-  Textarea,
 } from '../components/ui'
+import PropertyFields, { BLANK_PROPERTY } from '../components/forms/PropertyFields'
 import type { Property } from '../lib/types'
 
-const BLANK: Partial<Property> = {
-  name: '',
-  address: '',
-  city: '',
-  state: '',
-  zip_code: '',
-  property_type: 'residential',
-  unit_label: '',
-  floor: '',
-  furnishing: 'unfurnished',
-  bedrooms: 0,
-  bathrooms: 0,
-  area_sqft: 0,
-  rent_amount: 0,
-  security_deposit: 0,
-  maintenance_charge: 0,
-  status: 'available',
-  description: '',
-}
-
-const FURNISHINGS = ['unfurnished', 'semi_furnished', 'furnished']
 
 interface Summary {
   total: number
@@ -86,7 +63,7 @@ export default function Properties() {
   const openNew = () => {
     setErrors({})
     setFormError('')
-    setEditing({ ...BLANK })
+    setEditing({ ...BLANK_PROPERTY })
   }
 
   const openEdit = (property: Property) => {
@@ -301,187 +278,7 @@ export default function Properties() {
         <form id="property-form" onSubmit={save} className="space-y-5" noValidate>
           {formError && !Object.keys(errors).length && <Alert message={formError} />}
 
-          <fieldset>
-            <legend className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-500">
-              Identity
-            </legend>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Property name" required error={errors.name} className="sm:col-span-2">
-                <Input
-                  required
-                  invalid={Boolean(errors.name)}
-                  value={editing?.name ?? ''}
-                  onChange={(event) => set({ name: event.target.value })}
-                  placeholder="Riverstone Apartments 4B"
-                />
-              </Field>
-              <Field
-                label="Property ID"
-                error={errors.property_code}
-                hint="Leave blank to generate automatically."
-              >
-                <Input
-                  invalid={Boolean(errors.property_code)}
-                  value={editing?.property_code ?? ''}
-                  onChange={(event) => set({ property_code: event.target.value })}
-                  placeholder="PR-0001"
-                />
-              </Field>
-              <Field label="Property type" error={errors.property_type}>
-                <Select
-                  value={editing?.property_type ?? 'residential'}
-                  onChange={(event) =>
-                    set({ property_type: event.target.value as Property['property_type'] })
-                  }
-                >
-                  <option value="residential">Residential</option>
-                  <option value="commercial">Commercial</option>
-                </Select>
-              </Field>
-            </div>
-          </fieldset>
-
-          <fieldset>
-            <legend className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-500">
-              Address
-            </legend>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Address" required error={errors.address} className="sm:col-span-2">
-                <Input
-                  required
-                  invalid={Boolean(errors.address)}
-                  value={editing?.address ?? ''}
-                  onChange={(event) => set({ address: event.target.value })}
-                />
-              </Field>
-              <Field label="City">
-                <Input value={editing?.city ?? ''} onChange={(event) => set({ city: event.target.value })} />
-              </Field>
-              <Field label="State">
-                <Input value={editing?.state ?? ''} onChange={(event) => set({ state: event.target.value })} />
-              </Field>
-              <Field label="Pincode">
-                <Input
-                  value={editing?.zip_code ?? ''}
-                  onChange={(event) => set({ zip_code: event.target.value })}
-                />
-              </Field>
-              <Field label="Unit">
-                <Input
-                  value={editing?.unit_label ?? ''}
-                  onChange={(event) => set({ unit_label: event.target.value })}
-                  placeholder="4B"
-                />
-              </Field>
-              <Field label="Floor">
-                <Input
-                  value={editing?.floor ?? ''}
-                  onChange={(event) => set({ floor: event.target.value })}
-                  placeholder="4th"
-                />
-              </Field>
-            </div>
-          </fieldset>
-
-          <fieldset>
-            <legend className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-500">
-              Specification
-            </legend>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Bedrooms">
-                <Input
-                  type="number"
-                  min={0}
-                  value={editing?.bedrooms ?? 0}
-                  onChange={(event) => set({ bedrooms: Number(event.target.value) })}
-                />
-              </Field>
-              <Field label="Bathrooms">
-                <Input
-                  type="number"
-                  min={0}
-                  value={editing?.bathrooms ?? 0}
-                  onChange={(event) => set({ bathrooms: Number(event.target.value) })}
-                />
-              </Field>
-              <Field label="Area (sq ft)">
-                <Input
-                  type="number"
-                  min={0}
-                  value={editing?.area_sqft ?? 0}
-                  onChange={(event) => set({ area_sqft: Number(event.target.value) })}
-                />
-              </Field>
-              <Field label="Furnishing">
-                <Select
-                  value={editing?.furnishing ?? 'unfurnished'}
-                  onChange={(event) => set({ furnishing: event.target.value })}
-                >
-                  {FURNISHINGS.map((value) => (
-                    <option key={value} value={value}>
-                      {titleCase(value)}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-            </div>
-          </fieldset>
-
-          <fieldset>
-            <legend className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-500">
-              Commercials
-            </legend>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Monthly rent (₹)" error={errors.rent_amount}>
-                <Input
-                  type="number"
-                  min={0}
-                  invalid={Boolean(errors.rent_amount)}
-                  value={editing?.rent_amount ?? 0}
-                  onChange={(event) => set({ rent_amount: Number(event.target.value) })}
-                />
-              </Field>
-              <Field label="Security deposit (₹)" error={errors.security_deposit}>
-                <Input
-                  type="number"
-                  min={0}
-                  invalid={Boolean(errors.security_deposit)}
-                  value={editing?.security_deposit ?? 0}
-                  onChange={(event) => set({ security_deposit: Number(event.target.value) })}
-                />
-              </Field>
-              <Field label="Maintenance charge (₹)" error={errors.maintenance_charge}>
-                <Input
-                  type="number"
-                  min={0}
-                  invalid={Boolean(errors.maintenance_charge)}
-                  value={editing?.maintenance_charge ?? 0}
-                  onChange={(event) => set({ maintenance_charge: Number(event.target.value) })}
-                />
-              </Field>
-              <Field
-                label="Availability"
-                error={errors.status}
-                hint="Set automatically when a lease starts or ends."
-              >
-                <Select
-                  invalid={Boolean(errors.status)}
-                  value={editing?.status ?? 'available'}
-                  onChange={(event) => set({ status: event.target.value as Property['status'] })}
-                >
-                  <option value="available">Available</option>
-                  <option value="occupied">Occupied</option>
-                  <option value="maintenance">Under maintenance</option>
-                </Select>
-              </Field>
-              <Field label="Description" className="sm:col-span-2">
-                <Textarea
-                  value={editing?.description ?? ''}
-                  onChange={(event) => set({ description: event.target.value })}
-                />
-              </Field>
-            </div>
-          </fieldset>
+          <PropertyFields value={editing} set={set} errors={errors} />
         </form>
       </Modal>
 

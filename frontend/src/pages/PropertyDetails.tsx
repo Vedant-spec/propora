@@ -1,17 +1,24 @@
-import { Link, useParams } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useResource } from '../hooks/useResource'
+import { api, readError } from '../lib/api'
+import type { FieldErrors } from '../lib/api'
+import { useToast } from '../context/ToastContext'
 import { formatDate, money, titleCase } from '../lib/format'
 import BackLink from '../components/BackLink'
+import PropertyFields from '../components/forms/PropertyFields'
 import {
   Alert,
   Badge,
   Button,
   Card,
   CardHeader,
+  ConfirmModal,
   Detail,
   DetailGrid,
   DetailSkeleton,
   EmptyState,
+  Modal,
   PageHeader,
   Table,
   Td,
@@ -26,13 +33,61 @@ interface PropertyDetail extends Property {
 
 export default function PropertyDetails() {
   const { id } = useParams()
-  const { data, loading, error } = useResource<PropertyDetail>(`/properties/${id}`)
+  const navigate = useNavigate()
+  const toast = useToast()
+  const { data, loading, error, reload } = useResource<PropertyDetail>(`/properties/${id}`)
+
+  const [editing, setEditing] = useState<Partial<Property> | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [errors, setErrors] = useState<FieldErrors>({})
+  const [formError, setFormError] = useState('')
+  const [saving, setSaving] = useState(false)
 
   if (loading) return <DetailSkeleton />
   if (error) return <Alert message={error} />
   if (!data) return null
 
   const lease = data.current_lease
+  const set = (patch: Partial<Property>) => setEditing((prev) => ({ ...prev, ...patch }))
+
+  const openEdit = () => {
+    setErrors({})
+    setFormError('')
+    setEditing({ ...data })
+  }
+
+  const save = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (!editing) return
+    setSaving(true)
+    setFormError('')
+    setErrors({})
+    try {
+      await api(`/properties/${id}`, { method: 'PUT', body: editing })
+      setEditing(null)
+      toast.success('Property updated')
+      await reload()
+    } catch (err) {
+      const parsed = readError(err)
+      setFormError(parsed.message)
+      setErrors(parsed.errors)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const remove = async () => {
+    setSaving(true)
+    setFormError('')
+    try {
+      await api(`/properties/${id}`, { method: 'DELETE' })
+      toast.success('Property deleted')
+      navigate('/properties', { replace: true })
+    } catch (err) {
+      setFormError(readError(err).message)
+      setSaving(false)
+    }
+  }
 
   return (
     <>
@@ -53,11 +108,20 @@ export default function PropertyDetails() {
         action={
           <div className="flex flex-wrap gap-2">
             <Badge>{data.status}</Badge>
-            <Link to="/properties">
-              <Button variant="secondary" size="sm">
-                Edit property
-              </Button>
-            </Link>
+            <Button variant="secondary" size="sm" onClick={openEdit}>
+              Edit property
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-danger hover:bg-danger-soft"
+              onClick={() => {
+                setFormError('')
+                setConfirmDelete(true)
+              }}
+            >
+              Delete
+            </Button>
           </div>
         }
       />
@@ -265,6 +329,45 @@ export default function PropertyDetails() {
           </Card>
         </div>
       </div>
+
+      <Modal
+        open={Boolean(editing)}
+        title="Edit property"
+        subtitle={editing?.property_code}
+        onClose={() => setEditing(null)}
+        wide
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setEditing(null)}>
+              Cancel
+            </Button>
+            <Button form="property-detail-form" type="submit" disabled={saving}>
+              {saving ? 'Saving…' : 'Save property'}
+            </Button>
+          </>
+        }
+      >
+        <form id="property-detail-form" onSubmit={save} className="space-y-5" noValidate>
+          {formError && !Object.keys(errors).length && <Alert message={formError} />}
+          <PropertyFields value={editing} set={set} errors={errors} />
+        </form>
+      </Modal>
+
+      <ConfirmModal
+        open={confirmDelete}
+        title="Delete property"
+        message={
+          <>
+            Delete <strong className="text-ink-900">{data.name}</strong>? This also removes its
+            lease history and maintenance records. This cannot be undone.
+          </>
+        }
+        confirmLabel="Delete property"
+        busy={saving}
+        error={formError}
+        onConfirm={remove}
+        onClose={() => setConfirmDelete(false)}
+      />
     </>
   )
 }

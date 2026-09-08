@@ -19,37 +19,15 @@ import {
   Modal,
   PageHeader,
   SearchBar,
-  Select,
   Table,
   TableSkeleton,
   Tabs,
   Td,
-  Textarea,
 } from '../components/ui'
+import TenantFields, { BLANK_TENANT } from '../components/forms/TenantFields'
+import type { TenantForm } from '../components/forms/TenantFields'
 import type { Tenant } from '../lib/types'
 
-type TenantForm = Partial<Tenant> & { create_login?: boolean; password?: string }
-
-const BLANK: TenantForm = {
-  full_name: '',
-  email: '',
-  phone: '',
-  date_of_birth: '',
-  gender: '',
-  id_proof_type: 'Aadhaar',
-  id_number: '',
-  occupation: '',
-  unit_room: '',
-  emergency_name: '',
-  emergency_relationship: '',
-  emergency_phone: '',
-  notes: '',
-  create_login: true,
-  password: '',
-}
-
-const ID_TYPES = ['Aadhaar', 'PAN', 'Passport', 'Driving Licence', 'Voter ID']
-const GENDERS = ['male', 'female', 'other', 'prefer_not_to_say']
 
 export default function Tenants() {
   const toast = useToast()
@@ -73,7 +51,7 @@ export default function Tenants() {
     setErrors({})
     setFormError('')
     setDocumentFile(null)
-    setEditing(tenant ? { ...tenant } : { ...BLANK })
+    setEditing(tenant ? { ...tenant } : { ...BLANK_TENANT })
   }
 
   const save = async (event: React.FormEvent) => {
@@ -266,159 +244,7 @@ export default function Tenants() {
         <form id="tenant-form" onSubmit={save} className="space-y-5" noValidate>
           {formError && !Object.keys(errors).length && <Alert message={formError} />}
 
-          <fieldset>
-            <legend className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-500">
-              Personal information
-            </legend>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Full name" required error={errors.full_name} className="sm:col-span-2">
-                <Input
-                  required
-                  invalid={Boolean(errors.full_name)}
-                  value={editing?.full_name ?? ''}
-                  onChange={(event) => set({ full_name: event.target.value })}
-                />
-              </Field>
-              <Field label="Email" required error={errors.email}>
-                <Input
-                  type="email"
-                  required
-                  disabled={Boolean(editing?.id)}
-                  invalid={Boolean(errors.email)}
-                  value={editing?.email ?? ''}
-                  onChange={(event) => set({ email: event.target.value })}
-                />
-              </Field>
-              <Field label="Phone" error={errors.phone}>
-                <Input
-                  invalid={Boolean(errors.phone)}
-                  value={editing?.phone ?? ''}
-                  onChange={(event) => set({ phone: event.target.value })}
-                />
-              </Field>
-              <Field label="Date of birth" error={errors.date_of_birth}>
-                <Input
-                  type="date"
-                  invalid={Boolean(errors.date_of_birth)}
-                  value={editing?.date_of_birth?.slice(0, 10) ?? ''}
-                  onChange={(event) => set({ date_of_birth: event.target.value })}
-                />
-              </Field>
-              <Field label="Gender">
-                <Select
-                  value={editing?.gender ?? ''}
-                  onChange={(event) => set({ gender: event.target.value })}
-                >
-                  <option value="">Not specified</option>
-                  {GENDERS.map((value) => (
-                    <option key={value} value={value}>
-                      {value.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-              <Field label="Occupation" className="sm:col-span-2">
-                <Input
-                  value={editing?.occupation ?? ''}
-                  onChange={(event) => set({ occupation: event.target.value })}
-                />
-              </Field>
-            </div>
-          </fieldset>
-
-          <fieldset>
-            <legend className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-500">
-              Identification
-            </legend>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="ID proof type">
-                <Select
-                  value={editing?.id_proof_type ?? ''}
-                  onChange={(event) => set({ id_proof_type: event.target.value })}
-                >
-                  <option value="">Not provided</option>
-                  {ID_TYPES.map((value) => (
-                    <option key={value} value={value}>
-                      {value}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-              <Field label="ID number">
-                <Input
-                  value={editing?.id_number ?? ''}
-                  onChange={(event) => set({ id_number: event.target.value })}
-                />
-              </Field>
-              <Field
-                label="Document upload"
-                className="sm:col-span-2"
-                error={errors.document}
-                hint={
-                  editing?.document_name
-                    ? 'A document is already on file. Choosing a new one replaces it.'
-                    : 'PDF or image, up to 8 MB.'
-                }
-              >
-                <Input
-                  type="file"
-                  accept=".pdf,.png,.jpg,.jpeg,.webp"
-                  invalid={Boolean(errors.document)}
-                  onChange={(event) => setDocumentFile(event.target.files?.[0] ?? null)}
-                  className="file:mr-3 file:rounded-md file:border-0 file:bg-brand-50 file:px-3 file:py-1 file:text-sm file:font-medium file:text-brand-700"
-                />
-              </Field>
-            </div>
-          </fieldset>
-
-          <fieldset>
-            <legend className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-500">
-              Property
-            </legend>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Unit / room" hint="Assign a property from the tenant's detail page.">
-                <Input
-                  value={editing?.unit_room ?? ''}
-                  onChange={(event) => set({ unit_room: event.target.value })}
-                  placeholder="4B"
-                />
-              </Field>
-            </div>
-          </fieldset>
-
-          <fieldset>
-            <legend className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-500">
-              Emergency contact
-            </legend>
-            <div className="grid gap-4 sm:grid-cols-3">
-              <Field label="Contact name">
-                <Input
-                  value={editing?.emergency_name ?? ''}
-                  onChange={(event) => set({ emergency_name: event.target.value })}
-                />
-              </Field>
-              <Field label="Relationship">
-                <Input
-                  value={editing?.emergency_relationship ?? ''}
-                  onChange={(event) => set({ emergency_relationship: event.target.value })}
-                  placeholder="Spouse"
-                />
-              </Field>
-              <Field label="Phone number">
-                <Input
-                  value={editing?.emergency_phone ?? ''}
-                  onChange={(event) => set({ emergency_phone: event.target.value })}
-                />
-              </Field>
-            </div>
-          </fieldset>
-
-          <Field label="Notes">
-            <Textarea
-              value={editing?.notes ?? ''}
-              onChange={(event) => set({ notes: event.target.value })}
-            />
-          </Field>
+          <TenantFields value={editing} set={set} errors={errors} onDocument={setDocumentFile} />
 
           {!editing?.id && (
             <div className="rounded-lg border border-ink-200 bg-sunken p-4">

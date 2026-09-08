@@ -1,17 +1,20 @@
 import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useResource } from '../hooks/useResource'
-import { api, readError } from '../lib/api'
+import { api, download, readError, upload } from '../lib/api'
 import type { FieldErrors } from '../lib/api'
 import { useToast } from '../context/ToastContext'
 import { formatDate, initials, money, titleCase } from '../lib/format'
 import BackLink from '../components/BackLink'
+import TenantFields from '../components/forms/TenantFields'
+import type { TenantForm } from '../components/forms/TenantFields'
 import {
   Alert,
   Badge,
   Button,
   Card,
   CardHeader,
+  ConfirmModal,
   Detail,
   DetailGrid,
   DetailSkeleton,
@@ -38,11 +41,15 @@ const inAYear = new Date(Date.now() + 365 * 864e5).toISOString().slice(0, 10)
 
 export default function TenantDetails() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const toast = useToast()
   const { data, loading, error, reload } = useResource<TenantDetail>(`/tenants/${id}`)
   const { data: properties } = useResource<Property[]>('/properties', { status: 'available' })
 
   const [assigning, setAssigning] = useState(false)
+  const [editing, setEditing] = useState<TenantForm | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [documentFile, setDocumentFile] = useState<File | null>(null)
   const [form, setForm] = useState({
     property_id: '',
     start_date: today,
@@ -63,6 +70,60 @@ export default function TenantDetails() {
   if (!data) return null
 
   const lease = data.current_lease
+  const setField = (patch: TenantForm) => setEditing((prev) => ({ ...prev, ...patch }))
+
+  const openEdit = () => {
+    setErrors({})
+    setFormError('')
+    setDocumentFile(null)
+    setEditing({ ...data })
+  }
+
+  const saveEdit = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (!editing) return
+    setSaving(true)
+    setFormError('')
+    setErrors({})
+    try {
+      await api(`/tenants/${id}`, { method: 'PUT', body: editing })
+      if (documentFile) {
+        const formData = new FormData()
+        formData.append('file', documentFile)
+        await upload(`/tenants/${id}/document`, formData)
+      }
+      setEditing(null)
+      toast.success('Tenant updated')
+      await reload()
+    } catch (err) {
+      const parsed = readError(err)
+      setFormError(parsed.message)
+      setErrors(parsed.errors)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const remove = async () => {
+    setSaving(true)
+    setFormError('')
+    try {
+      await api(`/tenants/${id}`, { method: 'DELETE' })
+      toast.success('Tenant deleted')
+      navigate('/tenants', { replace: true })
+    } catch (err) {
+      setFormError(readError(err).message)
+      setSaving(false)
+    }
+  }
+
+  const openDocument = async () => {
+    try {
+      await download(`/tenants/${id}/document`, {}, `${data.full_name} - ID document`)
+    } catch (err) {
+      toast.error(readError(err).message)
+    }
+  }
 
   const pickProperty = (value: string) => {
     const property = properties?.find((item) => item.id === Number(value))
@@ -118,6 +179,20 @@ export default function TenantDetails() {
                 Assign property
               </Button>
             )}
+            <Button variant="secondary" size="sm" onClick={openEdit}>
+              Edit tenant
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-danger hover:bg-danger-soft"
+              onClick={() => {
+                setFormError('')
+                setConfirmDelete(true)
+              }}
+            >
+              Delete
+            </Button>
           </div>
         }
       />
@@ -145,7 +220,16 @@ export default function TenantDetails() {
                 label="Document"
                 value={
                   data.document_name ? (
-                    <span className="text-success">On file</span>
+                    <button
+                      type="button"
+                      onClick={openDocument}
+                      className="inline-flex items-center gap-1.5 font-medium text-brand-600 hover:underline"
+                    >
+                      <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                        <path d="M10 2.5a.75.75 0 0 1 .75.75v7.19l2.22-2.22a.75.75 0 1 1 1.06 1.06l-3.5 3.5a.75.75 0 0 1-1.06 0l-3.5-3.5a.75.75 0 0 1 1.06-1.06l2.22 2.22V3.25A.75.75 0 0 1 10 2.5ZM3.5 14a.75.75 0 0 1 .75.75v1.5h11.5v-1.5a.75.75 0 0 1 1.5 0v2.25a.75.75 0 0 1-.75.75H3.5a.75.75 0 0 1-.75-.75V14.75A.75.75 0 0 1 3.5 14Z" />
+                      </svg>
+                      Download
+                    </button>
                   ) : (
                     <span className="text-ink-400">Not uploaded</span>
                   )
@@ -406,6 +490,50 @@ export default function TenantDetails() {
           </label>
         </form>
       </Modal>
+
+      <Modal
+        open={Boolean(editing)}
+        title="Edit tenant"
+        subtitle={editing?.email}
+        onClose={() => setEditing(null)}
+        wide
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setEditing(null)}>
+              Cancel
+            </Button>
+            <Button form="tenant-detail-form" type="submit" disabled={saving}>
+              {saving ? 'Saving…' : 'Save tenant'}
+            </Button>
+          </>
+        }
+      >
+        <form id="tenant-detail-form" onSubmit={saveEdit} className="space-y-5" noValidate>
+          {formError && !Object.keys(errors).length && <Alert message={formError} />}
+          <TenantFields
+            value={editing}
+            set={setField}
+            errors={errors}
+            onDocument={setDocumentFile}
+          />
+        </form>
+      </Modal>
+
+      <ConfirmModal
+        open={confirmDelete}
+        title="Delete tenant"
+        message={
+          <>
+            Delete <strong className="text-ink-900">{data.full_name}</strong>? Their portal login,
+            lease history and payment records are removed with them.
+          </>
+        }
+        confirmLabel="Delete tenant"
+        busy={saving}
+        error={formError}
+        onConfirm={remove}
+        onClose={() => setConfirmDelete(false)}
+      />
     </>
   )
 }
