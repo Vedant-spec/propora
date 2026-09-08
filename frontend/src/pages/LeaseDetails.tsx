@@ -224,7 +224,7 @@ export default function LeaseDetails() {
                     <Td className="text-xs">{formatDate(payment.due_date)}</Td>
                     <Td>{money(payment.amount)}</Td>
                     <Td className="text-success">{money(payment.amount_paid)}</Td>
-                    <Td className={payment.balance > 0 ? 'font-medium text-warning' : 'text-ink-400'}>
+                    <Td className={payment.balance > 0 ? 'font-medium text-warning' : 'text-ink-500'}>
                       {money(payment.balance)}
                     </Td>
                     <Td>
@@ -263,7 +263,7 @@ export default function LeaseDetails() {
               </Link>
               <p className="mt-1 text-sm text-ink-500">{data.property_address}</p>
               {data.property_code && (
-                <p className="mt-2 font-mono text-xs text-ink-400">{data.property_code}</p>
+                <p className="mt-2 font-mono text-xs text-ink-500">{data.property_code}</p>
               )}
             </div>
           </Card>

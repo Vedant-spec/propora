@@ -140,7 +140,7 @@ export default function Layout() {
           {groups.map((group, index) => (
             <div key={group.label ?? index} className="space-y-1">
               {group.label && (
-                <p className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-ink-400">
+                <p className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-ink-500">
                   {group.label}
                 </p>
               )}

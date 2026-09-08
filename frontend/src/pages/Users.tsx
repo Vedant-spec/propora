@@ -97,7 +97,7 @@ export default function Users() {
                     </span>
                     <span className="font-medium text-ink-900">
                       {user.name}
-                      {user.id === me?.id && <span className="ml-2 text-xs text-ink-400">(you)</span>}
+                      {user.id === me?.id && <span className="ml-2 text-xs text-ink-500">(you)</span>}
                     </span>
                   </div>
                 </Td>

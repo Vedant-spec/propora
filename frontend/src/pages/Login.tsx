@@ -126,7 +126,7 @@ export default function Login() {
 
         <div className="flex items-center gap-3 py-1">
           <span className="h-px flex-1 bg-ink-200" />
-          <span className="text-xs font-medium uppercase tracking-wide text-ink-400">or</span>
+          <span className="text-xs font-medium uppercase tracking-wide text-ink-500">or</span>
           <span className="h-px flex-1 bg-ink-200" />
         </div>
 

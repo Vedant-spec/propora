@@ -231,7 +231,7 @@ export default function TenantDetails() {
                       Download
                     </button>
                   ) : (
-                    <span className="text-ink-400">Not uploaded</span>
+                    <span className="text-ink-500">Not uploaded</span>
                   )
                 }
               />

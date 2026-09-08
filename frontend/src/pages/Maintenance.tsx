@@ -207,7 +207,7 @@ export default function Maintenance() {
                 </Td>
                 <Td className="text-sm">{request.property_name}</Td>
                 <Td className="text-sm">
-                  {request.tenant_name ?? <span className="text-ink-400">Staff</span>}
+                  {request.tenant_name ?? <span className="text-ink-500">Staff</span>}
                 </Td>
                 <Td>
                   <Badge>{request.priority}</Badge>
@@ -216,7 +216,7 @@ export default function Maintenance() {
                   <Badge>{request.status}</Badge>
                 </Td>
                 <Td className="text-sm">
-                  {request.assignee_name ?? <span className="text-ink-400">Unassigned</span>}
+                  {request.assignee_name ?? <span className="text-ink-500">Unassigned</span>}
                   {request.technician_name && (
                     <div className="text-xs text-ink-500">{request.technician_name}</div>
                   )}

@@ -98,7 +98,7 @@ export default function MaintenanceHistory() {
                   <div className="text-xs text-ink-500">{item.title}</div>
                 </Td>
                 <Td className="text-sm">{item.property_name}</Td>
-                <Td className="text-sm">{item.tenant_name ?? <span className="text-ink-400">Staff</span>}</Td>
+                <Td className="text-sm">{item.tenant_name ?? <span className="text-ink-500">Staff</span>}</Td>
                 <Td className="capitalize">{item.category}</Td>
                 <Td>
                   <span className="font-medium">{item.age_days}d</span>
@@ -106,7 +106,7 @@ export default function MaintenanceHistory() {
                     closed {formatDate(item.closed_at ?? item.completed_at)}
                   </div>
                 </Td>
-                <Td>{item.cost ? money(item.cost) : <span className="text-ink-400">—</span>}</Td>
+                <Td>{item.cost ? money(item.cost) : <span className="text-ink-500">—</span>}</Td>
                 <Td>
                   <Badge>{item.status}</Badge>
                 </Td>

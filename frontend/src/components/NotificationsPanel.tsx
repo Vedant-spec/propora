@@ -164,7 +164,7 @@ export default function NotificationsPanel() {
                         {item.message && (
                           <span className="mt-0.5 block text-xs text-ink-500">{item.message}</span>
                         )}
-                        <span className="mt-1 block text-xs text-ink-400">
+                        <span className="mt-1 block text-xs text-ink-500">
                           {relativeTime(item.created_at)}
                         </span>
                       </span>

@@ -277,7 +277,7 @@ export default function Payments() {
                 </Td>
                 <Td>{money(payment.amount)}</Td>
                 <Td className="text-success">{money(payment.amount_paid)}</Td>
-                <Td className={payment.balance > 0 ? 'font-medium text-warning' : 'text-ink-400'}>
+                <Td className={payment.balance > 0 ? 'font-medium text-warning' : 'text-ink-500'}>
                   {money(payment.balance)}
                 </Td>
                 <Td>

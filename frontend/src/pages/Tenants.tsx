@@ -167,7 +167,7 @@ export default function Tenants() {
                   <div className="text-xs text-ink-500">{tenant.phone || '—'}</div>
                 </Td>
                 <Td className="text-sm">
-                  {tenant.id_proof_type || <span className="text-ink-400">—</span>}
+                  {tenant.id_proof_type || <span className="text-ink-500">—</span>}
                   {tenant.id_number && (
                     <div className="font-mono text-xs text-ink-500">{tenant.id_number}</div>
                   )}
@@ -181,7 +181,7 @@ export default function Tenants() {
                       {tenant.current_property}
                     </Link>
                   ) : (
-                    <span className="text-ink-400">Not assigned</span>
+                    <span className="text-ink-500">Not assigned</span>
                   )}
                   {tenant.unit_room && (
                     <div className="text-xs text-ink-500">Unit {tenant.unit_room}</div>
@@ -194,7 +194,7 @@ export default function Tenants() {
                   {tenant.has_login ? (
                     <Badge tone="green">enabled</Badge>
                   ) : (
-                    <span className="text-xs text-ink-400">none</span>
+                    <span className="text-xs text-ink-500">none</span>
                   )}
                 </Td>
                 <Td className="whitespace-nowrap text-right">

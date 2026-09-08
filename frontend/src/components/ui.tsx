@@ -639,7 +639,7 @@ export function Detail({ label, value }: { label: string; value: ReactNode }) {
       <dt className="text-sm text-ink-500">{label}</dt>
       <dd className="mt-1 break-words font-medium text-ink-900">
         {value === null || value === undefined || value === '' ? (
-          <span className="font-normal text-ink-400">—</span>
+          <span className="font-normal text-ink-500">—</span>
         ) : (
           value
         )}
@@ -709,7 +709,7 @@ export function ProgressSteps({
               <span
                 className={cx(
                   'flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold transition-colors',
-                  done ? 'bg-brand-600 text-brand-contrast' : 'bg-ink-100 text-ink-400',
+                  done ? 'bg-brand-600 text-brand-contrast' : 'bg-ink-100 text-ink-600',
                 )}
               >
                 {index < current ? (

@@ -227,7 +227,7 @@ export default function Properties() {
                       {property.current_tenant}
                     </Link>
                   ) : (
-                    <span className="text-ink-400">—</span>
+                    <span className="text-ink-500">—</span>
                   )}
                 </Td>
                 <Td className="whitespace-nowrap text-right">
