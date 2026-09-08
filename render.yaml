@@ -18,10 +18,7 @@ services:
         fromDatabase:
           name: propora-db
           property: connectionString
-      # Set APP_BASE_URL to your live URL after the first deploy, so password
-      # reset emails link back to the right place.
-      - key: APP_BASE_URL
-        sync: false
+      # APP_BASE_URL is derived from RENDER_EXTERNAL_URL automatically.
       # Optional SMTP — leave unset to disable outbound email.
       - key: MAIL_SERVER
         sync: false

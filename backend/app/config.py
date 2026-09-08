@@ -67,8 +67,20 @@ class Config:
     # Built React app. When present, Flask serves the SPA and the API from one origin.
     STATIC_DIR = os.getenv("STATIC_DIR", os.path.join(PROJECT_DIR, "frontend", "dist"))
 
-    # Public origin, used to build links inside emails.
-    APP_BASE_URL = (os.getenv("APP_BASE_URL") or "http://localhost:5173").rstrip("/")
+    # Public origin, used to build links inside emails. Hosts that inject their
+    # own external URL (Render sets RENDER_EXTERNAL_URL) are picked up
+    # automatically, so a deployment needs no manual configuration for this.
+    APP_BASE_URL = (
+        os.getenv("APP_BASE_URL")
+        or os.getenv("RENDER_EXTERNAL_URL")
+        or os.getenv("RAILWAY_PUBLIC_DOMAIN_URL")
+        or (
+            "https://" + os.environ["RENDER_EXTERNAL_HOSTNAME"]
+            if os.getenv("RENDER_EXTERNAL_HOSTNAME")
+            else None
+        )
+        or "http://localhost:5173"
+    ).rstrip("/")
 
     # In production the SPA is same-origin, so CORS is only needed for local dev.
     CORS_ORIGINS = [
