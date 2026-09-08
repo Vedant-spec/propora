@@ -16,6 +16,8 @@ from flask import Blueprint, current_app, jsonify, request
 
 from ..extensions import db
 from ..models import OtpCode, ROLE_TENANT, Tenant, User
+from ..mailer import is_configured as mail_configured
+from ..mailer import send_otp_email
 from ..sms import is_configured as sms_configured
 from ..sms import send_otp
 from ..utils import field_errors, find_user_by_phone, log_activity, normalize_phone
@@ -32,13 +34,26 @@ def issue_token(user):
     return _issue(user)
 
 
-def _reveal_code(code):
+def _deliver_code(user, phone, code, ttl):
+    """Send the code by the best channel available.
+
+    SMS first, since that is what the user asked for; email second, because a
+    real inbox still beats no delivery. Returns the channel used, or None.
+    """
+    if send_otp(phone, code, ttl):
+        return "sms"
+    if mail_configured() and user.email and send_otp_email(user, code, ttl):
+        return "email"
+    return None
+
+
+def _reveal_code(code, channel):
     """Whether to hand the code back to the client.
 
-    Only when there is no gateway to deliver it — otherwise the code travels
-    over SMS and must never appear in an API response.
+    Only when nothing could deliver it — a code that went out over SMS or
+    email must never also appear in an API response.
     """
-    if sms_configured():
+    if channel is not None:
         return None
     if not current_app.config["SHOW_OTP_WITHOUT_GATEWAY"]:
         return None
@@ -199,13 +214,23 @@ def request_otp():
     record, code = OtpCode.issue(user, phone)
     db.session.commit()
 
-    send_otp(phone, code, ttl)
+    channel = _deliver_code(user, phone, code, ttl)
+    response["delivered_via"] = channel
 
-    revealed = _reveal_code(code)
+    if channel == "sms":
+        response["message"] = f"A {OtpCode.OTP_LENGTH}-digit code has been texted to {phone}."
+    elif channel == "email":
+        masked = user.email.split("@")[0][:2] + "•••@" + user.email.split("@")[-1]
+        response["message"] = (
+            f"No SMS gateway is connected, so the code was emailed to {masked} instead."
+        )
+
+    revealed = _reveal_code(code, channel)
     if revealed:
         response["demo_code"] = revealed
         response["message"] = (
-            f"No SMS gateway is connected, so your {OtpCode.OTP_LENGTH}-digit code is shown here."
+            f"No SMS or email gateway is connected, so your "
+            f"{OtpCode.OTP_LENGTH}-digit code is shown here."
         )
     return jsonify(response)
 

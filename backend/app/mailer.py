@@ -192,3 +192,37 @@ def send_notification(user, title, message, link_url=None):
     )
 
     return send_email(user.email, f"PROPORA — {title}", text_body, html_body)
+
+
+def send_otp_email(user, code, minutes):
+    """Deliver a sign-in code by email.
+
+    A fallback for when no SMS gateway is configured but SMTP is — email is a
+    real delivery channel, so the code must not also appear on screen.
+    """
+    subject = "Your PROPORA sign-in code"
+
+    text_body = (
+        f"Hello {user.name},\n\n"
+        f"Your PROPORA sign-in code is {code}\n\n"
+        f"It expires in {minutes} minutes and can only be used once.\n\n"
+        f"If you did not try to sign in, you can ignore this email.\n"
+    )
+
+    html_body = _layout(
+        heading="Your sign-in code",
+        body_html=(
+            f"<p style='margin:0 0 18px;'>Hello {html.escape(user.name)},</p>"
+            f"<p style='margin:0 0 10px;'>Enter this code to finish signing in:</p>"
+            f"<p style='margin:0;font-size:32px;font-weight:700;letter-spacing:8px;"
+            f"font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:{BRAND};'>"
+            f"{html.escape(code)}</p>"
+        ),
+        footer=(
+            f"The code expires in {minutes} minutes and can only be used once.<br>"
+            f"If you did not try to sign in, ignore this email."
+        ),
+    )
+
+    return send_email(user.email, subject, text_body, html_body)
+
