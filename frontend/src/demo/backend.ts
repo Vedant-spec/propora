@@ -111,7 +111,7 @@ function leaseState(l: any): string {
 function userDto(u: any) {
   const profile = tenantProfileFor(u.id)
   const { password, ...rest } = u
-  return { ...rest, tenant_id: profile?.id ?? null }
+  return { ...rest, phone_verified: u.phone_verified ?? true, tenant_id: profile?.id ?? null }
 }
 
 function propertyDto(p: any, deep = false): any {
@@ -438,6 +438,157 @@ route('POST', /^\/auth\/forgot-password$/, ({ body }) => {
 
 route('GET', /^\/auth\/reset-password\/(.+)$/, () => {
   throw new DemoError('This reset link is invalid or has expired', 400)
+})
+
+/* ---- self-service: sign up and phone sign-in ---- */
+
+const EMAIL_RE_AUTH = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
+const OTP_TTL_MINUTES = 5
+const OTP_RESEND_SECONDS = 60
+const OTP_MAX_ATTEMPTS = 5
+
+/** Match numbers the way people type them: on the last 10 digits. */
+function normalizePhone(value: string) {
+  const digits = String(value ?? '').replace(/\D/g, '')
+  return digits.length >= 10 ? digits.slice(-10) : digits
+}
+
+function findUserByPhone(phone: string) {
+  const target = normalizePhone(phone)
+  if (target.length < 10) return null
+  return store.users.find((u) => u.phone && normalizePhone(u.phone) === target) ?? null
+}
+
+// Codes live in memory only — a refresh mid-flow simply means requesting a new one.
+const otpStore = new Map<number, { code: string; expires: number; issued: number; attempts: number }>()
+
+route('GET', /^\/auth\/signup-enabled$/, () => ({ enabled: true, sms_configured: false }))
+
+route('POST', /^\/auth\/register$/, ({ body }) => {
+  const errors: Record<string, string> = {}
+  const name = String(body.name ?? '').trim()
+  const email = String(body.email ?? '').trim().toLowerCase()
+  const phone = String(body.phone ?? '').trim()
+  const password = body.password ?? ''
+
+  if (!name) errors.name = 'Enter your full name'
+  if (!email) errors.email = 'Enter your email address'
+  else if (!EMAIL_RE_AUTH.test(email)) errors.email = 'Enter a valid email address'
+  else if (store.users.some((u) => u.email.toLowerCase() === email)) {
+    errors.email = 'An account with that email already exists. Try signing in.'
+  }
+  if (phone) {
+    if (normalizePhone(phone).length < 10) errors.phone = 'Enter a valid 10-digit mobile number'
+    else if (findUserByPhone(phone)) errors.phone = 'That mobile number is already registered'
+  }
+  if (password.length < 6) errors.password = 'Use at least 6 characters'
+  if (password && password !== body.confirm_password) {
+    errors.confirm_password = 'Passwords do not match'
+  }
+  if (Object.keys(errors).length) throw invalid(errors)
+
+  const user: any = {
+    id: nextId(store.users),
+    name, email, phone: phone || null, password, role: 'tenant',
+    is_active: true, phone_verified: false, theme: 'system', density: 'comfortable',
+    notify_email: true, notify_rent: true, notify_maintenance: true, notify_lease: true,
+    last_login_at: nowIso(), password_changed_at: nowIso(), created_at: nowIso(),
+  }
+  store.users.push(user)
+
+  // Adopt a tenant record a manager already created for this email.
+  const existing = store.tenants.find((t) => t.email.toLowerCase() === email)
+  let linked = false
+  if (existing && !existing.user_id) {
+    existing.user_id = user.id
+    if (phone && !existing.phone) existing.phone = phone
+    linked = true
+  } else if (existing) {
+    store.users = store.users.filter((u) => u.id !== user.id)
+    throw invalid({ email: 'An account with that email already exists. Try signing in.' })
+  } else {
+    store.tenants.push({
+      id: nextId(store.tenants), user_id: user.id, full_name: name, email,
+      phone: phone || null, date_of_birth: null, gender: '', id_proof_type: '',
+      id_number: '', document_name: null, occupation: '', unit_room: '',
+      emergency_name: '', emergency_relationship: '', emergency_phone: '',
+      notes: '', created_at: nowIso(),
+    } as any)
+  }
+
+  logActivity(user.id, 'created', 'user', user.id,
+    `${name} signed up${linked ? ' and was linked to an existing tenant record' : ''}`)
+  setSession({ userId: user.id })
+  persist()
+  return { access_token: `demo.${user.id}`, user: userDto(user), linked_to_existing_tenant: linked }
+})
+
+route('POST', /^\/auth\/otp\/request$/, ({ body }) => {
+  const phone = String(body.phone ?? '').trim()
+  if (normalizePhone(phone).length < 10) {
+    throw invalid({ phone: 'Enter a valid 10-digit mobile number' })
+  }
+
+  const user = findUserByPhone(phone)
+  const base = {
+    message: 'If that number is registered, a 6-digit code is on its way.',
+    expires_in_minutes: OTP_TTL_MINUTES,
+    resend_in_seconds: OTP_RESEND_SECONDS,
+    sms_configured: false,
+  }
+  // Same answer either way, so this cannot reveal who has an account.
+  if (!user || !user.is_active) return base
+
+  const existing = otpStore.get(user.id)
+  if (existing) {
+    const wait = Math.ceil((existing.issued + OTP_RESEND_SECONDS * 1000 - Date.now()) / 1000)
+    if (wait > 0) {
+      throw new DemoError(`A code was just sent. Try again in ${wait} seconds.`, 429)
+    }
+  }
+
+  const code = String(Math.floor(Math.random() * 1e6)).padStart(6, '0')
+  otpStore.set(user.id, {
+    code,
+    expires: Date.now() + OTP_TTL_MINUTES * 60_000,
+    issued: Date.now(),
+    attempts: 0,
+  })
+  return {
+    ...base,
+    message: 'No SMS gateway is connected, so your 6-digit code is shown here.',
+    demo_code: code,
+  }
+})
+
+route('POST', /^\/auth\/otp\/verify$/, ({ body }) => {
+  const phone = String(body.phone ?? '').trim()
+  const code = String(body.code ?? '').trim()
+  const errors: Record<string, string> = {}
+  if (normalizePhone(phone).length < 10) errors.phone = 'Enter a valid 10-digit mobile number'
+  if (!code) errors.code = 'Enter the code you received'
+  if (Object.keys(errors).length) throw invalid(errors)
+
+  const user = findUserByPhone(phone)
+  const record = user ? otpStore.get(user.id) : null
+  if (!user || !record || record.expires < Date.now() || record.attempts >= OTP_MAX_ATTEMPTS) {
+    throw invalid({ code: 'That code has expired. Request a new one.' })
+  }
+
+  record.attempts += 1
+  if (record.code !== code) {
+    const left = OTP_MAX_ATTEMPTS - record.attempts
+    if (left <= 0) throw invalid({ code: 'Too many incorrect attempts. Request a new code.' })
+    throw invalid({ code: `That code is incorrect. ${left} attempt${left === 1 ? '' : 's'} left.` })
+  }
+
+  otpStore.delete(user.id)
+  user.phone_verified = true
+  user.last_login_at = nowIso()
+  logActivity(user.id, 'updated', 'account', user.id, `${user.name} signed in with a phone code`)
+  setSession({ userId: user.id })
+  persist()
+  return { access_token: `demo.${user.id}`, user: userDto(user) }
 })
 
 route('GET', /^\/auth\/users$/, ({ query }) => {

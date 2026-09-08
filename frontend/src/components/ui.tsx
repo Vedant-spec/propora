@@ -5,7 +5,7 @@ import type {
   SelectHTMLAttributes,
   TextareaHTMLAttributes,
 } from 'react'
-import { useEffect } from 'react'
+import { forwardRef, useEffect } from 'react'
 
 export const cx = (...classes: (string | false | null | undefined)[]) =>
   classes.filter(Boolean).join(' ')
@@ -224,17 +224,17 @@ const CONTROL_BAD = 'border-danger focus:border-danger focus:ring-danger-ring'
 
 type Invalid = { invalid?: boolean }
 
-export const Input = ({
-  className,
-  invalid,
-  ...props
-}: InputHTMLAttributes<HTMLInputElement> & Invalid) => (
-  <input
-    {...props}
-    aria-invalid={invalid || undefined}
-    className={cx(CONTROL, invalid ? CONTROL_BAD : CONTROL_OK, className)}
-  />
+export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement> & Invalid>(
+  ({ className, invalid, ...props }, ref) => (
+    <input
+      {...props}
+      ref={ref}
+      aria-invalid={invalid || undefined}
+      className={cx(CONTROL, invalid ? CONTROL_BAD : CONTROL_OK, className)}
+    />
+  ),
 )
+Input.displayName = 'Input'
 
 export const Select = ({
   className,

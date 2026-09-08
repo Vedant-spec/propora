@@ -93,17 +93,18 @@ export default function Splash() {
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link
-              to="/login"
+              to="/register"
               className="rounded-lg bg-brand-600 px-6 py-3 text-sm font-medium text-brand-contrast shadow-ambient transition-colors hover:bg-brand-500"
             >
-              Get started
+              Create an account
             </Link>
-            <a
-              href="#features"
+            <Link
+              to="/login"
               className="rounded-lg border border-ink-200 bg-surface px-6 py-3 text-sm font-medium text-ink-700 transition-colors hover:bg-ink-100"
             >
-              See what it does
-            </a>
+              Sign in
+            </Link>
+
           </div>
         </section>
 

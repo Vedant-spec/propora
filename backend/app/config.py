@@ -100,6 +100,23 @@ class Config:
     MAIL_FROM_NAME = os.getenv("MAIL_FROM_NAME", "PROPORA")
     MAIL_TIMEOUT = int(os.getenv("MAIL_TIMEOUT", 20))
 
+    # --- SMS (phone sign-in codes) ----------------------------------------
+    TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "")
+    TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "")
+    TWILIO_FROM_NUMBER = os.getenv("TWILIO_FROM_NUMBER", "")
+    SMS_WEBHOOK_URL = os.getenv("SMS_WEBHOOK_URL", "")
+    SMS_WEBHOOK_TOKEN = os.getenv("SMS_WEBHOOK_TOKEN", "")
+
+    # With no SMS gateway the code cannot reach anyone, which makes phone
+    # sign-in impossible to try. Showing it on screen is then the only way the
+    # flow is usable — but it is a demo affordance, so it switches itself off
+    # the moment a real gateway is configured, and can be forced off entirely.
+    SHOW_OTP_WITHOUT_GATEWAY = _bool("SHOW_OTP_WITHOUT_GATEWAY", True)
+
+    # Public sign-up. Self-registered accounts are always tenants; staff
+    # accounts are created by an administrator.
+    ALLOW_PUBLIC_SIGNUP = _bool("ALLOW_PUBLIC_SIGNUP", True)
+
     PASSWORD_RESET_TTL_MINUTES = int(os.getenv("PASSWORD_RESET_TTL_MINUTES", 30))
     PRODUCTION = _bool("PRODUCTION")
     # An empty database means nobody can sign in, which makes the app

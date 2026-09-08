@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 from functools import wraps
 
@@ -94,6 +95,27 @@ def notify(title, message, kind="info", link=None, user_id=None, audience=None):
 
     link_url = f"{current_app.config['APP_BASE_URL']}{link}" if link else None
     send_notification(recipient, title, message, link_url)
+
+
+def normalize_phone(value):
+    """Reduce a phone number to comparable digits.
+
+    People type +91 98200 41122, 09820041122 and 9820041122 for the same
+    number, so match on the last 10 digits rather than the raw string.
+    """
+    digits = re.sub(r"\D", "", value or "")
+    return digits[-10:] if len(digits) >= 10 else digits
+
+
+def find_user_by_phone(phone):
+    """Look a user up by phone, tolerating formatting differences."""
+    target = normalize_phone(phone)
+    if len(target) < 10:
+        return None
+    for user in User.query.filter(User.phone.isnot(None)).all():
+        if normalize_phone(user.phone) == target:
+            return user
+    return None
 
 
 def parse_date(value, field="date", required=False):

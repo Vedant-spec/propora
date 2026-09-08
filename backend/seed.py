@@ -103,8 +103,10 @@ def seed():
     # ---------------------------------------------------------------- staff
     admin = User(name="Priya Menon", email="admin@propora.app", phone="+91 98111 00001", role=ROLE_ADMIN)
     admin.set_password("admin123")
+    admin.phone_verified = True
     manager = User(name="Arjun Kulkarni", email="manager@propora.app", phone="+91 98111 00002", role=ROLE_MANAGER)
     manager.set_password("manager123")
+    manager.phone_verified = True
     manager2 = User(name="Sneha Iyer", email="sneha@propora.app", phone="+91 98111 00003", role=ROLE_MANAGER)
     manager2.set_password("manager123")
 
@@ -141,6 +143,7 @@ def seed():
         full_name, email, phone, occupation, gender, dob, id_type, id_number = row
         user = User(name=full_name, email=email, phone=phone, role=ROLE_TENANT)
         user.set_password("tenant123")
+        user.phone_verified = True
         db.session.add(user)
         db.session.flush()
 

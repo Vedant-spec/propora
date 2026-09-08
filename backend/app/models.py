@@ -27,6 +27,7 @@ class User(db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(20), nullable=False, default=ROLE_TENANT)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
+    phone_verified = db.Column(db.Boolean, nullable=False, default=False)
 
     # Preferences (drive the Settings screens)
     theme = db.Column(db.String(10), nullable=False, default="system")
@@ -65,6 +66,7 @@ class User(db.Model):
             "phone": self.phone,
             "role": self.role,
             "is_active": self.is_active,
+            "phone_verified": self.phone_verified,
             "theme": self.theme,
             "density": self.density,
             "notify_email": self.notify_email,
@@ -516,3 +518,66 @@ class PasswordResetToken(db.Model):
     @property
     def is_valid(self):
         return self.used_at is None and self.expires_at > datetime.utcnow()
+
+
+class OtpCode(db.Model):
+    """A one-time code for phone sign-in.
+
+    The code itself is never stored — only a hash — so a database leak cannot
+    be replayed. Codes are single-use, short-lived, and give up after a small
+    number of wrong guesses.
+    """
+
+    __tablename__ = "otp_codes"
+
+    OTP_LENGTH = 6
+    TTL_MINUTES = 5
+    MAX_ATTEMPTS = 5
+    RESEND_SECONDS = 60
+    HOURLY_LIMIT = 5
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    phone = db.Column(db.String(30), nullable=False, index=True)
+    code_hash = db.Column(db.String(255), nullable=False)
+    attempts = db.Column(db.Integer, nullable=False, default=0)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    consumed_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+    user = db.relationship("User")
+
+    @classmethod
+    def issue(cls, user, phone):
+        """Create a code, returning (record, plaintext). Plaintext is not stored."""
+        code = f"{secrets.randbelow(10 ** cls.OTP_LENGTH):0{cls.OTP_LENGTH}d}"
+        record = cls(
+            user_id=user.id,
+            phone=phone,
+            code_hash=generate_password_hash(code),
+            expires_at=datetime.utcnow() + timedelta(minutes=cls.TTL_MINUTES),
+        )
+        db.session.add(record)
+        return record, code
+
+    @property
+    def is_live(self):
+        return (
+            self.consumed_at is None
+            and self.attempts < self.MAX_ATTEMPTS
+            and self.expires_at > datetime.utcnow()
+        )
+
+    @property
+    def seconds_until_resend(self):
+        if not self.created_at:
+            return 0
+        elapsed = (datetime.utcnow() - self.created_at).total_seconds()
+        return max(0, int(self.RESEND_SECONDS - elapsed))
+
+    def verify(self, code: str) -> bool:
+        self.attempts += 1
+        if not check_password_hash(self.code_hash, (code or "").strip()):
+            return False
+        self.consumed_at = datetime.utcnow()
+        return True

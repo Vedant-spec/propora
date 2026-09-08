@@ -11,6 +11,8 @@ import DemoBanner from './components/DemoBanner'
 // Auth
 import Splash from './pages/Splash'
 import Login from './pages/Login'
+import Register from './pages/Register'
+import PhoneLogin from './pages/PhoneLogin'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import SessionExpired from './pages/SessionExpired'
@@ -85,6 +87,8 @@ export default function App() {
               {/* Public */}
               <Route path="/" element={<Splash />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/login/phone" element={<PhoneLogin />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/session-expired" element={<SessionExpired />} />

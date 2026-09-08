@@ -3,11 +3,21 @@ import type { ReactNode } from 'react'
 import { api, tokenStore } from '../lib/api'
 import type { User } from '../lib/types'
 
+interface RegisterInput {
+  name: string
+  email: string
+  phone?: string
+  password: string
+  confirm_password: string
+}
+
 interface AuthValue {
   user: User | null
   loading: boolean
   isStaff: boolean
   login: (email: string, password: string) => Promise<User>
+  register: (input: RegisterInput) => Promise<{ user: User; linked_to_existing_tenant: boolean }>
+  verifyOtp: (phone: string, code: string) => Promise<User>
   logout: () => void
   refresh: () => Promise<void>
 }
@@ -50,6 +60,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return result.user
   }, [])
 
+  const register = useCallback(async (input: RegisterInput) => {
+    const result = await api<{
+      access_token: string
+      user: User
+      linked_to_existing_tenant: boolean
+    }>('/auth/register', { method: 'POST', body: input, silent401: true })
+    tokenStore.set(result.access_token)
+    setUser(result.user)
+    return result
+  }, [])
+
+  const verifyOtp = useCallback(async (phone: string, code: string) => {
+    const result = await api<{ access_token: string; user: User }>('/auth/otp/verify', {
+      method: 'POST',
+      body: { phone, code },
+      silent401: true,
+    })
+    tokenStore.set(result.access_token)
+    setUser(result.user)
+    return result.user
+  }, [])
+
   const logout = useCallback(() => {
     tokenStore.clear()
     setUser(null)
@@ -61,10 +93,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       isStaff: user?.role === 'admin' || user?.role === 'manager',
       login,
+      register,
+      verifyOtp,
       logout,
       refresh,
     }),
-    [user, loading, login, logout, refresh],
+    [user, loading, login, register, verifyOtp, logout, refresh],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

@@ -55,7 +55,10 @@ export default function Login() {
       subtitle="Use your PROPORA account to continue."
       footer={
         <>
-          Trouble signing in? Contact your property administrator.
+          New here?{' '}
+          <Link to="/register" className="font-medium text-brand-600 hover:underline">
+            Create an account
+          </Link>
         </>
       }
     >
@@ -120,6 +123,21 @@ export default function Login() {
         <Button type="submit" disabled={submitting} className="w-full">
           {submitting ? 'Signing in…' : 'Sign in'}
         </Button>
+
+        <div className="flex items-center gap-3 py-1">
+          <span className="h-px flex-1 bg-ink-200" />
+          <span className="text-xs font-medium uppercase tracking-wide text-ink-400">or</span>
+          <span className="h-px flex-1 bg-ink-200" />
+        </div>
+
+        <Link to="/login/phone">
+          <Button type="button" variant="secondary" className="w-full">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="h-4 w-4">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Zm4 14h2" />
+            </svg>
+            Sign in with a mobile code
+          </Button>
+        </Link>
       </form>
 
       <div className="mt-8 rounded-lg border border-ink-200 bg-sunken p-4">
