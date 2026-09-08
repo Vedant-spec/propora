@@ -50,6 +50,9 @@ def create_app(config_class=Config):
                 "database": engine,
                 # SQLite on a container filesystem does not survive a restart.
                 "persistent": engine != "sqlite",
+                # Surfaced so a deployment can be checked without signing in:
+                # this is what password-reset emails will link back to.
+                "base_url": app.config["APP_BASE_URL"],
                 "users": users,
                 "properties": properties,
                 "email": "configured" if is_configured() else "disabled",
